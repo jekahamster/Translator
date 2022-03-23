@@ -1,0 +1,9 @@
+{
+	"translate_from_clipboard": "ctrl+`",
+	"translate_from_screenshot": "ctrl+1",
+	"translate_from_text_area": "ctrl+return",
+	"swap_lang": "ctrl+w",
+	"listen_src": "ctrl+1",
+	"listen_dst": "ctrl+2",
+	"add_to_favorite": "ctrl+s"
+}
