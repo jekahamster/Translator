@@ -1,15 +1,19 @@
 import time
-
+import os
 import keyboard
 import pyperclip
 import pyautogui
 import translator
 
+from defines import ROOT_DIR
+from config.settings import Settings
 from PyQt5 import QtCore
 from logger_builder import get_logger
 # from pynput import keyboard
 
 logger = get_logger(__name__)
+
+SETTINGS = Settings(os.path.join(ROOT_DIR, "config/settings.json"))
 
 class TranslationThread(QtCore.QThread):
     translation_loading_signal = QtCore.pyqtSignal()
@@ -84,7 +88,7 @@ class TranslationThread(QtCore.QThread):
     def _get_clipboard_data(self):
         prev_data = pyperclip.paste()
         pyautogui.hotkey('ctrl', 'c')
-        time.sleep(0.0001)
+        time.sleep(SETTINGS.waiting_for_copy)
         text = pyperclip.paste().strip()
         pyperclip.copy(prev_data)
 

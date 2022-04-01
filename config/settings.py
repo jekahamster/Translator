@@ -35,6 +35,7 @@ class Settings:
         Settings.audio_rate = int(data["audio_rate"])
         Settings.audio_voice = int(data["audio_voice"])
         Settings.no_newline = bool(data["no_newline"])
+        Settings.waiting_for_copy = float(data["waiting_for_copy"])
         
         logger.info("Settings was loaded")
 
