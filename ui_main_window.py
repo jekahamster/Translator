@@ -69,7 +69,7 @@ class Ui_MainWindow(object):
         self.translatedTextField.setEnabled(True)
         self.translatedTextField.setStyleSheet("background-color: #fafafa;\n"
 "font-size: 20px;")
-        self.translatedTextField.setReadOnly(True)
+        self.translatedTextField.setReadOnly(False)
         self.translatedTextField.setObjectName("translatedTextField")
         self.verticalLayout.addWidget(self.translatedTextField)
         self.gridLayout.addLayout(self.verticalLayout, 0, 6, 1, 1)

@@ -3,5 +3,5 @@
 	"audio_rate": 125,
 	"audio_voice": 1,
 	"no_newline": true,
-	"waiting_for_copy": 0.0001
+	"waiting_for_copy": 0.01
 }
