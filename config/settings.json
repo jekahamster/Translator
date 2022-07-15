@@ -1,5 +1,5 @@
 {
-	"database": "./translator.db",
+	"database": "./database/translator.db",
 	"audio_rate": 125,
 	"audio_voice": 1,
 	"no_newline": true,
