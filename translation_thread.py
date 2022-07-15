@@ -58,7 +58,6 @@ class TranslationThread(QtCore.QThread):
             logger.info(f"Cant translate from screenshot")
             logger.info(e)
 
-
     def _get_text_from_screenshot(self):
         screenshot = pyautogui.screenshot()
         print(screenshot)
@@ -70,6 +69,11 @@ class TranslationThread(QtCore.QThread):
             self._src_text = text
             self._dst_text = self._translate(text)
 
+            self.translated_signal.emit(self._src_text, self._dst_text)
+        except TypeError as e:
+            logger.info(f"\nCant translate from clipboard\n{e}")
+            self._dst_text = ""
+            self._src_text = ""
             self.translated_signal.emit(self._src_text, self._dst_text)
         except Exception as e:
             self._dst_text = ""
