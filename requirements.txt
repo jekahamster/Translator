@@ -1,5 +1,6 @@
+# googletrans==3.1.0-alpha (3.1.0a0)
 googletrans==3.1.0a0
-PyQt5==5.15.6
+PyQt5==5.15.4
 pyqt5-tools==5.15.4.3.2
 pyttsx3==2.90
 numpy==1.21.3
