@@ -18,8 +18,6 @@ def main():
 	logger.debug("Programm was stoped")
 	sys.exit(exec)
 
-	# print(PyQt5.QtWidgets.QStyleFactory.keys())
-
 
 if __name__ == "__main__":
 	try:
