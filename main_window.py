@@ -6,11 +6,11 @@ import translation_thread
 import storage_thread
 
 from defines import ROOT_DIR
+from defines import SETTINGS
+from defines import HOTKEYS
 from PyQt5 import QtWidgets
 from PyQt5 import QtGui
 from ui_main_window import Ui_MainWindow
-from config import Settings
-from config import HotKeys
 from logger_builder import get_logger
 
 
@@ -20,76 +20,70 @@ logger = get_logger(__name__)
 class MainWindow(QtWidgets.QMainWindow):
 
     HIDE_WHEN_CLOSE = True
-    SETTINGS = Settings(os.path.join(ROOT_DIR, "config/settings.json"))
-    HOTKEYS = HotKeys(os.path.join(ROOT_DIR, "config/hotkeys.json"))
 
     def __init__(self):
         super().__init__()
 
-        try:
-            self.in_favourite = False
-            self.dst = None
-            self.src = None
+        self.in_favourite = False
+        self.dst = None
+        self.src = None
 
-            self.audio_engine = pyttsx3.init()
-            voices = self.audio_engine.getProperty('voices')
-            self.audio_engine.setProperty('voice', voices[MainWindow.SETTINGS["audio_voice"]].id)
-            self.audio_engine.setProperty('rate', MainWindow.SETTINGS["audio_rate"])
+        self.audio_engine = pyttsx3.init()
+        voices = self.audio_engine.getProperty('voices')
+        self.audio_engine.setProperty('voice', voices[SETTINGS["audio_voice"]].id)
+        self.audio_engine.setProperty('rate', SETTINGS["audio_rate"])
 
-            self.ui = Ui_MainWindow()
-            self.ui.setupUi(self)
-            self.setWindowTitle("Translator")
-            
-            self.ui.originalLangLabel.setText("en")
-            self.ui.translatedLangLabel.setText("ru")
-            self.ui.swapLabelButton.mouseReleaseEvent = lambda e: self.tt.swap_lang()
-            self.ui.listenSrcTextLabelButton.mouseReleaseEvent = lambda e: self.sound_src()
-            self.ui.listenDstTextLabelButton.mouseReleaseEvent = lambda e: self.sound_dst()
-            self.ui.favouriteLabelButton.mouseReleaseEvent = lambda e: self.favorite_click()
-            
-            self.tray_icon = QtWidgets.QSystemTrayIcon(self)
-            self.tray_icon.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_ComputerIcon))
+        self.ui = Ui_MainWindow()
+        self.ui.setupUi(self)
+        self.setWindowTitle("Translator")
+        
+        self.ui.originalLangLabel.setText("en")
+        self.ui.translatedLangLabel.setText("ru")
+        self.ui.swapLabelButton.mouseReleaseEvent = lambda e: self.tt.swap_lang()
+        self.ui.listenSrcTextLabelButton.mouseReleaseEvent = lambda e: self.sound_src()
+        self.ui.listenDstTextLabelButton.mouseReleaseEvent = lambda e: self.sound_dst()
+        self.ui.favouriteLabelButton.mouseReleaseEvent = lambda e: self.favorite_click()
+        
+        self.tray_icon = QtWidgets.QSystemTrayIcon(self)
+        self.tray_icon.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_ComputerIcon))
 
-            show_action = QtWidgets.QAction("Show", self)
-            hide_action = QtWidgets.QAction("Hide", self)
-            quit_action = QtWidgets.QAction("Exit", self)
+        show_action = QtWidgets.QAction("Show", self)
+        hide_action = QtWidgets.QAction("Hide", self)
+        quit_action = QtWidgets.QAction("Exit", self)
 
-            show_action.triggered.connect(self.show)
-            hide_action.triggered.connect(self.hide)
-            quit_action.triggered.connect(self.quit)
+        show_action.triggered.connect(self.show)
+        hide_action.triggered.connect(self.hide)
+        quit_action.triggered.connect(self.quit)
 
-            tray_menu = QtWidgets.QMenu()
-            tray_menu.addAction(show_action)
-            tray_menu.addAction(hide_action)
-            tray_menu.addAction(quit_action)
+        tray_menu = QtWidgets.QMenu()
+        tray_menu.addAction(show_action)
+        tray_menu.addAction(hide_action)
+        tray_menu.addAction(quit_action)
 
-            self.tray_icon.setContextMenu(tray_menu)
-            self.tray_icon.activated.connect(self.show)
-            self.tray_icon.show()
+        self.tray_icon.setContextMenu(tray_menu)
+        self.tray_icon.activated.connect(self.show)
+        self.tray_icon.show()
+        
+        self.database = sqlite3.connect(SETTINGS["database"])
+        self.tt = translation_thread.TranslationThread(parent=self)
+        self.st = storage_thread.StorageThread(self.database, parent=self)
 
-            self.database = sqlite3.connect(MainWindow.SETTINGS["database"])
-            self.tt = translation_thread.TranslationThread(parent=self)
-            self.st = storage_thread.StorageThread(self.database, parent=self)
+        self.tt.no_newline = SETTINGS["no_newline"]
 
-            self.tt.no_newline = self.SETTINGS["no_newline"]
-
-            self.set_up_shortcuts()
-            self.tt.start()
-            self.st.start()
-        except Exception as e:
-            logger.exception(e)
-            exit(0)
+        self.set_up_shortcuts()
+        self.tt.start()
+        self.st.start()
 
     def set_up_shortcuts(self):
-        self.shortcut_swap = QtWidgets.QShortcut(QtGui.QKeySequence(MainWindow.HOTKEYS.swap_lang), self)
-        self.shortcut_sound_src = QtWidgets.QShortcut(QtGui.QKeySequence(MainWindow.HOTKEYS.listen_src), self)
-        self.shortcut_sound_dst = QtWidgets.QShortcut(QtGui.QKeySequence(MainWindow.HOTKEYS.listen_dst), self)
-        self.shortcut_translate = QtWidgets.QShortcut(self.tr(MainWindow.HOTKEYS.translate_from_text_area), self.ui.originalTextField)
-        self.shortcut_add_to_favorite = QtWidgets.QShortcut(QtGui.QKeySequence(MainWindow.HOTKEYS.add_to_favorite), self)
-        self.tt.translate_from_clipboard_hotkey = MainWindow.HOTKEYS.translate_from_clipboard
-        self.tt.translate_from_screenshot_hotkey = MainWindow.HOTKEYS.translate_from_screenshot
+        self.shortcut_swap = QtWidgets.QShortcut(QtGui.QKeySequence(HOTKEYS.swap_lang), self)
+        self.shortcut_sound_src = QtWidgets.QShortcut(QtGui.QKeySequence(HOTKEYS.listen_src), self)
+        self.shortcut_sound_dst = QtWidgets.QShortcut(QtGui.QKeySequence(HOTKEYS.listen_dst), self)
+        self.shortcut_translate = QtWidgets.QShortcut(self.tr(HOTKEYS.translate_from_text_area), self.ui.originalTextField)
+        self.shortcut_add_to_favorite = QtWidgets.QShortcut(QtGui.QKeySequence(HOTKEYS.add_to_favorite), self)
+        self.tt.translate_from_clipboard_hotkey = HOTKEYS.translate_from_clipboard
+        self.tt.translate_from_screenshot_hotkey = HOTKEYS.translate_from_screenshot
 
-        self.tt.translation_loading_signal.connect(self.prepare_translatoin_loading_signal)
+        self.tt.translation_loading_signal.connect(self.prepare_translation_loading_signal)
         self.tt.translated_signal.connect(self.prepare_translation_signal)
         self.tt.swap_lang_signal.connect(self.swap_lang)
         self.shortcut_swap.activated.connect(lambda: self.tt.swap_lang())
@@ -121,7 +115,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.ui.favouriteLabelButton.setPixmap(QtGui.QPixmap(os.path.join(ROOT_DIR, "icons/star_rate_black_24dp.svg")))
             self.in_favourite = False
 
-    def prepare_translatoin_loading_signal(self):
+    def prepare_translation_loading_signal(self):
         self.set_original_text("Loading...")
         self.set_translated_text("")
         self.ui.favouriteLabelButton.setPixmap(QtGui.QPixmap(os.path.join(ROOT_DIR, "icons/star_rate_black_24dp.svg")))
