@@ -70,11 +70,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.tt.no_newline = SETTINGS["no_newline"]
 
-        self.set_up_shortcuts()
+        self._set_up_shortcuts()
         self.tt.start()
         self.st.start()
 
-    def set_up_shortcuts(self):
+    def _set_up_shortcuts(self):
         self.shortcut_swap = QtWidgets.QShortcut(QtGui.QKeySequence(HOTKEYS.swap_lang), self)
         self.shortcut_sound_src = QtWidgets.QShortcut(QtGui.QKeySequence(HOTKEYS.listen_src), self)
         self.shortcut_sound_dst = QtWidgets.QShortcut(QtGui.QKeySequence(HOTKEYS.listen_dst), self)
