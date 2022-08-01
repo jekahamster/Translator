@@ -46,7 +46,6 @@ class TranslationThread(QtCore.QThread):
 
         keyboard.wait()
 
-
     def translate_from_screenshot(self):
         try:
             text = self._get_text_from_screenshot()
@@ -66,8 +65,8 @@ class TranslationThread(QtCore.QThread):
         try:
             text = self._get_clipboard_data()
             self.translation_loading_signal.emit()
-            self._src_text = text
-            self._dst_text = self._translate(text)
+            self._src_text = text.strip()
+            self._dst_text = self._translate(text).strip()
 
             self.translated_signal.emit(self._src_text, self._dst_text)
         except TypeError as e:
@@ -81,8 +80,8 @@ class TranslationThread(QtCore.QThread):
 
     def translate(self, text):
         try:
-            self._src_text = text
-            self._dst_text = self._translate(text)
+            self._src_text = text.strip()
+            self._dst_text = self._translate(text).strip()
             self.translated_signal.emit(self._src_text, self._dst_text)
         except Exception as e:
             self._dst_text = ""
