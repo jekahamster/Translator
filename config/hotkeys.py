@@ -17,6 +17,7 @@ class HotKeys:
     listen_src = None
     listen_dst = None
     add_to_favorite = None
+    update = None
 
     def __init__(self, path, encoding="utf-8"):
         if HotKeys.path != path:
@@ -40,6 +41,7 @@ class HotKeys:
         HotKeys.listen_src = data["listen_src"]
         HotKeys.listen_dst = data["listen_dst"]
         HotKeys.add_to_favorite = data["add_to_favorite"]
+        HotKeys.update = data["update"]
 
         logger.info("Hotkeys was loaded")
         return HotKeys
