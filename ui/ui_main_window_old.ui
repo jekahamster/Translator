@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>579</width>
-    <height>340</height>
+    <width>556</width>
+    <height>395</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -25,7 +25,7 @@
    </property>
    <layout class="QGridLayout" name="gridLayout">
     <item row="0" column="6">
-     <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0,0">
+     <layout class="QVBoxLayout" name="verticalLayout" stretch="0,0,0">
       <property name="spacing">
        <number>5</number>
       </property>
@@ -37,18 +37,18 @@
         <property name="enabled">
          <bool>true</bool>
         </property>
+        <property name="cursor" stdset="0">
+         <cursorShape>ArrowCursor</cursorShape>
+        </property>
         <property name="styleSheet">
          <string notr="true">background-color: #fafafa;
 font-size: 20px;</string>
         </property>
-        <property name="verticalScrollBarPolicy">
-         <enum>Qt::ScrollBarAlwaysOff</enum>
+        <property name="readOnly">
+         <bool>false</bool>
         </property>
-        <property name="horizontalScrollBarPolicy">
-         <enum>Qt::ScrollBarAlwaysOff</enum>
-        </property>
-        <property name="placeholderText">
-         <string>Original text</string>
+        <property name="plainText">
+         <string/>
         </property>
        </widget>
       </item>
@@ -122,44 +122,12 @@ font-size: 20px;</string>
         <property name="enabled">
          <bool>true</bool>
         </property>
-        <property name="minimumSize">
-         <size>
-          <width>0</width>
-          <height>0</height>
-         </size>
-        </property>
         <property name="styleSheet">
          <string notr="true">background-color: #fafafa;
 font-size: 20px;</string>
-        </property>
-        <property name="verticalScrollBarPolicy">
-         <enum>Qt::ScrollBarAlwaysOff</enum>
-        </property>
-        <property name="horizontalScrollBarPolicy">
-         <enum>Qt::ScrollBarAlwaysOff</enum>
         </property>
         <property name="readOnly">
          <bool>false</bool>
-        </property>
-        <property name="placeholderText">
-         <string>Translated text</string>
-        </property>
-       </widget>
-      </item>
-      <item>
-       <widget class="QPlainTextEdit" name="notesField">
-        <property name="styleSheet">
-         <string notr="true">background-color: #fafafa;
-font-size: 20px;</string>
-        </property>
-        <property name="verticalScrollBarPolicy">
-         <enum>Qt::ScrollBarAlwaysOff</enum>
-        </property>
-        <property name="horizontalScrollBarPolicy">
-         <enum>Qt::ScrollBarAlwaysOff</enum>
-        </property>
-        <property name="placeholderText">
-         <string>Notes</string>
         </property>
        </widget>
       </item>
@@ -175,14 +143,8 @@ font-size: 20px;</string>
         <property name="cursor">
          <cursorShape>PointingHandCursor</cursorShape>
         </property>
-        <property name="layoutDirection">
-         <enum>Qt::LeftToRight</enum>
-        </property>
-        <property name="autoFillBackground">
-         <bool>false</bool>
-        </property>
         <property name="styleSheet">
-         <string notr="true">;</string>
+         <string notr="true"/>
         </property>
         <property name="text">
          <string/>
@@ -193,7 +155,19 @@ font-size: 20px;</string>
        </widget>
       </item>
       <item>
-       <widget class="QComboBox" name="originalLangComboBox"/>
+       <widget class="QLabel" name="originalLangLabel">
+        <property name="font">
+         <font>
+          <pointsize>12</pointsize>
+         </font>
+        </property>
+        <property name="text">
+         <string>TextLabel</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
+        </property>
+       </widget>
       </item>
       <item>
        <widget class="QLabel" name="listenDstTextLabelButton">
@@ -209,7 +183,19 @@ font-size: 20px;</string>
        </widget>
       </item>
       <item>
-       <widget class="QComboBox" name="translatedLangComboBox"/>
+       <widget class="QLabel" name="translatedLangLabel">
+        <property name="font">
+         <font>
+          <pointsize>12</pointsize>
+         </font>
+        </property>
+        <property name="text">
+         <string>TextLabel</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
+        </property>
+       </widget>
       </item>
      </layout>
     </item>
