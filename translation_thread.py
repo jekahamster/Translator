@@ -78,7 +78,11 @@ class TranslationThread(QtCore.QThread):
             self._dst_text = ""
             logger.info(f"\nCant translate from clipboard\n{e}")
 
-    def translate(self, text):
+    def translate(self, text, src_lang=None, dst_lang=None):
+        if src_lang and dst_lang:
+            self._lang_src = src_lang
+            self._lang_dst = dst_lang
+            
         try:
             self._src_text = text.strip()
             self._dst_text = self._translate(text).strip()
@@ -108,7 +112,7 @@ class TranslationThread(QtCore.QThread):
         self._lang_src, self._lang_dst = self._lang_dst, self._lang_src
         self._src_text, self._dst_text = self._dst_text, self._src_text
 
-        self.swap_lang_signal.emit(self._lang_src, self._lang_dst)
+        # self.swap_lang_signal.emit(self._lang_src, self._lang_dst)
 
     @property
     def lang_src(self):
@@ -141,5 +145,13 @@ class TranslationThread(QtCore.QThread):
     @no_newline.setter
     def no_newline(self, value):
         self._no_newline = value
+
+    @lang_src.setter
+    def lang_src(self, lang):
+        self._lang_src = lang
+
+    @lang_dst.setter
+    def lang_dst(self, lang):
+        self._lang_dst = lang
 
         
