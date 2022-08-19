@@ -1,10 +1,9 @@
 import logging
 
-
-LOG_FILE = "./log.log"
-LOG_FORMAT = f"%(asctime)s:[%(levelname)s]:%(name)s:(%(filename)s).%(funcName)s(%(lineno)d): %(message)s" 
-LOG_DATE_TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
-LOG_LEVEL = logging.DEBUG
+from defines import LOG_FILE
+from defines import LOG_FORMAT
+from defines import LOG_DATE_TIME_FORMAT
+from defines import LOG_LEVEL
 
 
 def _handler_set_up(handler):
