@@ -1,10 +1,4 @@
-import sys
-sys.path.append(".")
-
 import json
-import logger_builder
-
-logger = logger_builder.get_logger(__name__)
 
 class HotKeys:
     path = None
@@ -29,7 +23,6 @@ class HotKeys:
 
     @staticmethod
     def load(path, encoding="utf-8"):
-        logger.info("Loading hotkeys...")
         with open(path, "r", encoding=encoding) as hotkeys_file:
             data = json.load(hotkeys_file)
 
@@ -43,7 +36,6 @@ class HotKeys:
         HotKeys.add_to_favorite = data["add_to_favorite"]
         HotKeys.update = data["update"]
 
-        logger.info("Hotkeys was loaded")
         return HotKeys
 
 if __name__ == "__main__":

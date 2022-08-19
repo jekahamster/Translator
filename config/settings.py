@@ -1,10 +1,5 @@
-import sys
-sys.path.append(".")
-
 import json
-import logger_builder
 
-logger = logger_builder.get_logger(__name__)
 
 class Settings:
     path = None
@@ -25,8 +20,6 @@ class Settings:
 
     @staticmethod
     def load(path, encoding="utf-8"):
-        logger.info("Loading settings...")
-
         with open(path, "r", encoding=encoding) as settings_file:
             data = json.load(settings_file)
 
@@ -37,8 +30,6 @@ class Settings:
         Settings.no_newline = bool(data["no_newline"])
         Settings.waiting_for_copy = float(data["waiting_for_copy"])
         
-        logger.info("Settings was loaded")
-
         return Settings
 
 
