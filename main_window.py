@@ -3,12 +3,14 @@ import json
 import threading 
 import sqlite3 
 import pyttsx3
-import translation_thread
-import storage_thread
+import translator
+import storage
+import keyboard_listener
 
 from defines import ROOT_DIR
 from defines import SETTINGS
 from defines import HOTKEYS
+from defines import LANGS_PATH
 from PyQt5 import QtWidgets
 from PyQt5 import QtGui
 from ui_main_window import Ui_MainWindow
@@ -32,35 +34,41 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
 
-        self.in_favorite = False
-        self.dst_text = None
-        self.src_text = None
-
-        self.audio_engine = pyttsx3.init()
-        voices = self.audio_engine.getProperty('voices')
-        self.audio_engine.setProperty('voice', voices[SETTINGS["audio_voice"]].id)
-        self.audio_engine.setProperty('rate', SETTINGS["audio_rate"])
+        self._in_favorite = False
+        self._dst_text_cached = None
+        self._src_text_cached = None
+        self._languages = _load_langs(LANGS_PATH)
         
-        self.languages = _load_langs(ROOT_DIR / "config" / "langs.json")
+        self._database = sqlite3.connect(SETTINGS["database"])
+        self._translator = translator.Translator()
+        self._storage = storage.Storage(self._database)
+        self._keyboard_listener = keyboard_listener.KeyboardListener(parent=self)
 
-        self.ui = Ui_MainWindow()
-        self.ui.setupUi(self)
+        self._ui = Ui_MainWindow()
+        self._ui.setupUi(self)
+        self._setup_ui()
+        self._setup_shortcuts()
+        
+        self._keyboard_listener.start()
+
+    def _setup_ui(self):
         self.setWindowTitle("Translator")
+
+        # audio engine
+        self._audio_engine = pyttsx3.init()
+        voices = self._audio_engine.getProperty('voices')
+        self._audio_engine.setProperty('voice', voices[SETTINGS["audio_voice"]].id)
+        self._audio_engine.setProperty('rate', SETTINGS["audio_rate"])
+
+        # set languages dropdown
+        self._ui.originalLangComboBox.addItems(sorted(self._languages.keys()))
+        self._ui.translatedLangComboBox.addItems(sorted(self._languages.keys()))
+        self._ui.originalLangComboBox.setCurrentText("en")
+        self._ui.translatedLangComboBox.setCurrentText("ru")
         
-        self.ui.originalLangComboBox.addItems(sorted(self.languages.keys()))
-        self.ui.translatedLangComboBox.addItems(sorted(self.languages.keys()))
-        self.ui.originalLangComboBox.setCurrentText("en")
-        self.ui.translatedLangComboBox.setCurrentText("ru")
-        self.ui.swapLabelButton.mouseReleaseEvent = lambda e: self.swap_lang()
-        self.ui.listenSrcTextLabelButton.mouseReleaseEvent = lambda e: self.sound_src()
-        self.ui.listenDstTextLabelButton.mouseReleaseEvent = lambda e: self.sound_dst()
-        self.ui.favouriteLabelButton.mouseReleaseEvent = lambda e: self.favorite_click()
-        self.ui.originalLangComboBox.currentTextChanged.connect(self.lang_combobox_change)
-        self.ui.translatedLangComboBox.currentTextChanged.connect(self.lang_combobox_change)
-
-        self.tray_icon = QtWidgets.QSystemTrayIcon(self)
-        self.tray_icon.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_ComputerIcon))
-
+        # set tray 
+        self._tray_icon = QtWidgets.QSystemTrayIcon(self)
+        self._tray_icon.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_ComputerIcon))
         show_action = QtWidgets.QAction("Show", self)
         hide_action = QtWidgets.QAction("Hide", self)
         quit_action = QtWidgets.QAction("Exit", self)
@@ -74,100 +82,117 @@ class MainWindow(QtWidgets.QMainWindow):
         tray_menu.addAction(hide_action)
         tray_menu.addAction(quit_action)
 
-        self.tray_icon.setContextMenu(tray_menu)
-        self.tray_icon.activated.connect(self.show)
-        self.tray_icon.show()
+        self._tray_icon.setContextMenu(tray_menu)
+        self._tray_icon.activated.connect(self.show)
+        self._tray_icon.show()
         
-        self.database = sqlite3.connect(SETTINGS["database"])
-        self.tt = translation_thread.TranslationThread(parent=self)
-        self.st = storage_thread.StorageThread(self.database, parent=self)
+        # set buttons actions
+        self._ui.swapLabelButton.mouseReleaseEvent = lambda e: self.swap_lang()
+        self._ui.listenSrcTextLabelButton.mouseReleaseEvent = lambda e: self.sound_src()
+        self._ui.listenDstTextLabelButton.mouseReleaseEvent = lambda e: self.sound_dst()
+        self._ui.favouriteLabelButton.mouseReleaseEvent = lambda e: self.favorite_click()
+        self._ui.originalLangComboBox.currentTextChanged.connect(self.lang_combobox_change)
+        self._ui.translatedLangComboBox.currentTextChanged.connect(self.lang_combobox_change)      
 
-        self.tt.no_newline = SETTINGS["no_newline"]
+    def _setup_shortcuts(self):
+        self._shortcut_swap = QtWidgets.QShortcut(QtGui.QKeySequence(HOTKEYS.swap_lang), self)
+        self._shortcut_sound_src = QtWidgets.QShortcut(QtGui.QKeySequence(HOTKEYS.listen_src), self)
+        self._shortcut_sound_dst = QtWidgets.QShortcut(QtGui.QKeySequence(HOTKEYS.listen_dst), self)
+        self._shortcut_translate = QtWidgets.QShortcut(self.tr(HOTKEYS.translate_from_text_area), self._ui.originalTextField)
+        self._shortcut_add_to_favorite = QtWidgets.QShortcut(QtGui.QKeySequence(HOTKEYS.add_to_favorite), self)
+        self._shortcut_update = QtWidgets.QShortcut(QtGui.QKeySequence(HOTKEYS.update), self)
 
-        self._set_up_shortcuts()
-        self.tt.start()
-        self.st.start()
-
-    def _set_up_shortcuts(self):
-        self.shortcut_swap = QtWidgets.QShortcut(QtGui.QKeySequence(HOTKEYS.swap_lang), self)
-        self.shortcut_sound_src = QtWidgets.QShortcut(QtGui.QKeySequence(HOTKEYS.listen_src), self)
-        self.shortcut_sound_dst = QtWidgets.QShortcut(QtGui.QKeySequence(HOTKEYS.listen_dst), self)
-        self.shortcut_translate = QtWidgets.QShortcut(self.tr(HOTKEYS.translate_from_text_area), self.ui.originalTextField)
-        self.shortcut_add_to_favorite = QtWidgets.QShortcut(QtGui.QKeySequence(HOTKEYS.add_to_favorite), self)
-        self.shortcut_update = QtWidgets.QShortcut(QtGui.QKeySequence(HOTKEYS.update), self)
-        self.tt.translate_from_clipboard_hotkey = HOTKEYS.translate_from_clipboard
-        self.tt.translate_from_screenshot_hotkey = HOTKEYS.translate_from_screenshot
-
-        self.tt.translation_loading_signal.connect(self.prepare_translation_loading_signal)
-        self.tt.translated_signal.connect(self.prepare_translation_signal)
-        # self.tt.swap_lang_signal.connect(self.swap_lang)
-        self.shortcut_swap.activated.connect(lambda: self.swap_lang())
-        self.shortcut_sound_src.activated.connect(self.sound_src)
-        self.shortcut_sound_dst.activated.connect(self.sound_dst)
-        self.shortcut_translate.activated.connect(self.translate)
-        self.shortcut_add_to_favorite.activated.connect(self.favorite_click)
-        self.shortcut_update.activated.connect(self.update_favorite_translation)
+        self._keyboard_listener.clipboard_signal.connect(self._prepare_clipboard_signal)
+        self._translator.translated_signal.connect(self._prepare_translation_signal)
+        self._shortcut_swap.activated.connect(self.swap_lang)
+        self._shortcut_sound_src.activated.connect(self.sound_src)
+        self._shortcut_sound_dst.activated.connect(self.sound_dst)
+        self._shortcut_translate.activated.connect(self.translate_from_ui)
+        self._shortcut_add_to_favorite.activated.connect(self.favorite_click)
+        self._shortcut_update.activated.connect(self.update_favorite_translation)
 
     def swap_lang(self):
-        # self.src_text, self.dst_text = self.dst_text, self.src_text
+        # self._src_text_cached, self._dst_text_cached = self._dst_text_cached, self._src_text_cached
         
         self.original_text, self.translated_text = self.translated_text, self.original_text
         self.src_lang, self.dst_lang = self.dst_lang, self.src_lang
 
-    def prepare_translation_signal(self, src, dst):
-        self.src_text = src
-        self.dst_text = dst
-
+    def _prepare_translation_signal(self, src, dst):
+        self._src_text_cached = src
+        self._dst_text_cached = dst
+ 
         self.original_text = src
         self.translated_text = dst
-        self.ui.originalTextField.moveCursor(QtGui.QTextCursor.End)
-
-    def prepare_translation_loading_signal(self):
-        self.original_text = "Loading..."
-        self.translated_text = ""
         self.notes = ""
-        self.ui.favouriteLabelButton.setPixmap(QtGui.QPixmap(os.path.join(ROOT_DIR, "icons/star_rate_black_24dp.svg")))
-        self.in_favorite = False
+        self._ui.originalTextField.moveCursor(QtGui.QTextCursor.End)
+        
+        self.show()
+        self.activateWindow()
+
+    def _prepare_clipboard_signal(self, text):
+        self.original_text = text
+        self.translate(text)
+
+    def show_loading(self):
+        # self.original_text = "Loading..."
+        # self.translated_text = ""
+        # self.notes = ""
+
+        self.translated_text = "Loading..."
+        self.notes = ""
+
+        self._ui.favouriteLabelButton.setPixmap(QtGui.QPixmap(os.path.join(ROOT_DIR, "icons/star_rate_black_24dp.svg")))
+        self._in_favorite = False
 
         self.show()
         self.activateWindow()
 
     def favorite_click(self):
-        if self.in_favorite:
-            self.st.remove(self.src_text, self.src_lang, self.dst_lang)
-            self.ui.favouriteLabelButton.setPixmap(QtGui.QPixmap(str(ROOT_DIR / "icons" / "star_rate_black_24dp.svg")))
+        if self._in_favorite:
+            self._storage.remove(self._src_text_cached, self.src_lang, self.dst_lang)
+            self._ui.favouriteLabelButton.setPixmap(QtGui.QPixmap(str(ROOT_DIR / "icons" / "star_rate_black_24dp.svg")))
         else:
-            self.st.append(self.src_text, self.translated_text.strip(), self.notes.strip(), self.src_lang, self.dst_lang)
-            self.ui.favouriteLabelButton.setPixmap(QtGui.QPixmap(str(ROOT_DIR / "icons" / "star_rate_gold_24dp.svg")))
-        self.in_favorite = not self.in_favorite
+            self._storage.append(self._src_text_cached, self.translated_text.strip(), self.notes.strip(), self.src_lang, self.dst_lang)
+            self._ui.favouriteLabelButton.setPixmap(QtGui.QPixmap(str(ROOT_DIR / "icons" / "star_rate_gold_24dp.svg")))
+        self._in_favorite = not self._in_favorite
 
-    def lang_combobox_change(self, event):
-        self.tt.lang_src = self.src_lang
-        self.tt.lang_dst = self.dst_lang
-        self.translate()
+    def translate_from_ui(self):
+        self._src_text_cached = self._ui.originalTextField.toPlainText().strip()
+        self._ui.originalTextField.setPlainText(self._src_text_cached)
+        self.translate(self._src_text_cached, self.src_lang, self.dst_lang)
 
-    def translate(self):
-        self.src_text = self.ui.originalTextField.toPlainText().strip()
-        self.ui.originalTextField.setPlainText(self.src_text)
-        
-        saved_translations = self.st.get_all_by_word(self.src_text, self.src_lang, self.dst_lang)
+    def translate(self, text=None, lang_from=None, lang_to=None):
+        text = text or self.original_text
+        lang_from = lang_from or self.src_lang
+        lang_to = lang_to or self.dst_lang
+
+        self.show_loading()
+
+        saved_translations = self._storage.get_all_by_word(text, lang_from, lang_to)
 
         if len(saved_translations):
-            self.ui.favouriteLabelButton.setPixmap(QtGui.QPixmap(os.path.join(ROOT_DIR, "icons/star_rate_gold_24dp.svg")))
-            self.in_favorite = True
+            self._ui.favouriteLabelButton.setPixmap(QtGui.QPixmap(os.path.join(ROOT_DIR, "icons/star_rate_gold_24dp.svg")))
+            self._in_favorite = True
 
-            self.dst_text = saved_translations[0]["translated_text"]
-            self.translated_text = self.dst_text
+            self._src_text_cached = text
+            self._dst_text_cached = saved_translations[0]["translated_text"]
+
+            self.original_text = text                       # for clipboard
+            self.translated_text = self._dst_text_cached
             self.notes = saved_translations[0]["notes"]
             return 
 
-        self.ui.favouriteLabelButton.setPixmap(QtGui.QPixmap(os.path.join(ROOT_DIR, "icons/star_rate_black_24dp.svg")))
-        self.in_favorite = False
-        self.notes = ""
-        self.tt.translate(self.src_text)
+        self._ui.favouriteLabelButton.setPixmap(QtGui.QPixmap(os.path.join(ROOT_DIR, "icons/star_rate_black_24dp.svg")))
+        self._in_favorite = False
+        
+        translation_thread = threading.Thread(
+            target=self._translator.translate, 
+            args=(text, lang_from, lang_to)
+        )
+        translation_thread.start()
 
     def update_favorite_translation(self):
-        if not self.in_favorite:
+        if not self._in_favorite:
             return 
         
         original_text = self.original_text.strip()
@@ -176,73 +201,78 @@ class MainWindow(QtWidgets.QMainWindow):
         lang_from = self.src_lang
         lang_to = self.dst_lang
 
-        self.st.update(original_text, translated_text, notes, lang_from, lang_to)
+        self._storage.update(original_text, translated_text, notes, lang_from, lang_to)
 
-    def closeEvent(self, event):
+    def close_event(self, event):
         if MainWindow.HIDE_WHEN_CLOSE:
             event.ignore()
             self.hide()
 
-    def hideEvent(self, event):
+    def hide_event(self, event):
         event.ignore()
         self.hide()
 
+    def lang_combobox_change(self, event):
+        self.translate()
+
     def quit(self):
-        self.tt.terminate()
-        self.st.terminate()
-        self.database.close()
+        self._database.close()
         QtWidgets.qApp.quit()
 
     def sound_src(self):
         threading.Thread(
             target=self.generate_audio, 
-            args=(self.ui.originalTextField.toPlainText().strip(), )).start()
+            args=(self._ui.originalTextField.toPlainText().strip(), )).start()
 
     def sound_dst(self):
         threading.Thread(
             target=self.generate_audio, 
-            args=(self.ui.translatedTextField.toPlainText().strip(), )).start()
+            args=(self._ui.translatedTextField.toPlainText().strip(), )).start()
 
     def generate_audio(self, text):
-        self.audio_engine.say(text)
-        self.audio_engine.runAndWait()
+        self._audio_engine.say(text)
+        self._audio_engine.runAndWait()
     
     @property
     def src_lang(self):
-        return self.ui.originalLangComboBox.currentText()
+        return self._ui.originalLangComboBox.currentText()
 
     @src_lang.setter
     def src_lang(self, lang):
-        self.ui.originalLangComboBox.setCurrentText(lang)
+        self._ui.originalLangComboBox.setCurrentText(lang)
     
     @property
     def dst_lang(self):
-        return self.ui.translatedLangComboBox.currentText()
+        return self._ui.translatedLangComboBox.currentText()
 
     @dst_lang.setter
     def dst_lang(self, lang):
-        return self.ui.translatedLangComboBox.setCurrentText(lang)
+        return self._ui.translatedLangComboBox.setCurrentText(lang)
 
     @property
     def original_text(self):
-        return self.ui.originalTextField.toPlainText()
+        return self._ui.originalTextField.toPlainText()
 
     @original_text.setter
     def original_text(self, text):
-        self.ui.originalTextField.setPlainText(text)
+        self._ui.originalTextField.setPlainText(text)
 
     @property
     def translated_text(self):
-        return self.ui.translatedTextField.toPlainText()
+        return self._ui.translatedTextField.toPlainText()
 
     @translated_text.setter
     def translated_text(self, text):
-        self.ui.translatedTextField.setPlainText(text)
+        self._ui.translatedTextField.setPlainText(text)
 
     @property
     def notes(self):
-        return self.ui.notesField.toPlainText()
+        return self._ui.notesField.toPlainText()
 
     @notes.setter
     def notes(self, text):
-        self.ui.notesField.setPlainText(text)
+        self._ui.notesField.setPlainText(text)
+
+    @property
+    def in_favorite(self):
+        return self._in_favorite
