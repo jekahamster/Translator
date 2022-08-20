@@ -203,12 +203,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self._storage.update(original_text, translated_text, notes, lang_from, lang_to)
 
-    def close_event(self, event):
+    def closeEvent(self, event):
         if MainWindow.HIDE_WHEN_CLOSE:
             event.ignore()
             self.hide()
 
-    def hide_event(self, event):
+    def hideEvent(self, event):
         event.ignore()
         self.hide()
 
