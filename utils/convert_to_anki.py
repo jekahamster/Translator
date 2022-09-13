@@ -7,7 +7,7 @@ import sqlite3
 MAX_WORDS_COUNT = 5
 
 
-def convert(lang_from, lang_to, db_path, output_path, reverse=False):
+def convert(lang_from, lang_to, db_path, output_path, reverse=False, max_words_count=MAX_WORDS_COUNT):
     database = sqlite3.connect(str(db_path))
     cursor = database.cursor()
 
@@ -23,7 +23,7 @@ def convert(lang_from, lang_to, db_path, output_path, reverse=False):
         file.write(";\n")
         
         for word, translation, notes in result:
-            if len(word.split()) > MAX_WORDS_COUNT:
+            if max_words_count is not None and len(word.split()) > max_words_count:
                 continue
 
             word = word.replace("\"", "\"\"")
@@ -57,34 +57,48 @@ def build_parser():
         "-p", "--path",
         action="store",
         default="../database/translator.db",
-        dest="path"
+        dest="db_path",
+        help="Path to database"
     )
 
     parser.add_argument(
         "-r", "--reverse",
         action="store_true",
-        dest="reverse"
+        dest="reverse",
+        help="Make front side of cards with destination language and back side with source language"
     )
 
     parser.add_argument(
         "-f", "--lang-from",
         action="store",
         default="en",
-        dest="lang_from"
+        dest="lang_from",
+        help="Select cards with this src language (default: en)"
     )
 
     parser.add_argument(
         "-t", "--lang-to",
         action="store",
         default="ru",
-        dest="lang_to"
+        dest="lang_to",
+        help="Select cards with this dst language (default: ru)"
     )
 
     parser.add_argument(
         "-o", "--output",
         action="store",
         default="./words.txt",
-        dest="output"
+        dest="output",
+        help="Path to ouput file (default ./words.txt)"
+    )
+
+    parser.add_argument(
+        "-n",
+        action="store",
+        default=None,
+        type=int,
+        dest="max_words_count",
+        help="Max words count"
     )
 
     return parser
@@ -96,9 +110,10 @@ def main(args):
     convert(
         lang_from=parsing_results.lang_from,
         lang_to=parsing_results.lang_to,
-        db_path=parsing_results.path,
+        db_path=parsing_results.db_path,
         output_path=parsing_results.output,
-        reverse=parsing_results.reverse 
+        reverse=parsing_results.reverse,
+        max_words_count=parsing_results.max_words_count 
     )
     
 
