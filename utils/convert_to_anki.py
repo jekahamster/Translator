@@ -87,7 +87,7 @@ def build_parser():
     parser.add_argument(
         "-o", "--output",
         action="store",
-        default="./words.txt",
+        default="./words.csv",
         dest="output",
         help="Path to ouput file (default ./words.txt)"
     )
