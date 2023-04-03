@@ -2,7 +2,7 @@
 
 ## Description 
 
-This program will help you understand English articles, books, etc. You can also learn new words by adding them to your favorites.
+This program will help you understand articles, books, and other foreign texts without switching to another tab with a translator, which can cause loss of context and concentration. Simply select the text, press a hotkey, and continue reading. You can also learn new words by adding them to your favorites.
 
 ![image](https://user-images.githubusercontent.com/46385682/120347673-2baddf00-c305-11eb-8fc7-584ff733a477.png)
 
